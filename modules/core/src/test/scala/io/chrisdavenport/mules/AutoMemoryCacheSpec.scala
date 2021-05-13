@@ -1,11 +1,13 @@
 package io.chrisdavenport.mules
 
-import cats.effect.laws.util.TestContext
+import cats.effect.kernel.testkit.TestContext
 import cats.effect._
 import cats.implicits._
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
+import cats.effect.Temporal
+import cats.effect.unsafe.implicits.global
 
 class AutoMemoryCacheSpec extends Specification {
 
@@ -14,8 +16,8 @@ class AutoMemoryCacheSpec extends Specification {
 
   "Auto MemoryCache.ofSingleImmutableMap" should {
 
-    "expire keys" in WithTestContext { ctx => implicit cs => implicit timer =>
-      val spec = Resource.liftF(MemoryCache.ofSingleImmutableMap[IO, Int, String](cacheKeyExpiration.some))
+    "expire keys" in WithTestContext { ctx => /*implicit cs => implicit timer =>*/
+      val spec = Resource.eval(MemoryCache.ofSingleImmutableMap[IO, Int, String](cacheKeyExpiration.some))
         .flatMap(cache => MemoryCache.liftToAuto(cache, checkExpirationsEvery).as(cache))
         .use(cache =>
           for {
@@ -40,8 +42,8 @@ class AutoMemoryCacheSpec extends Specification {
       spec.as(1).unsafeRunSync() must_== 1
     }
 
-    "resets expiration" in WithTestContext { ctx => implicit cs => implicit timer =>
-      val spec = Resource.liftF(MemoryCache.ofSingleImmutableMap[IO, Int, String](cacheKeyExpiration.some))
+    "resets expiration" in WithTestContext { ctx => /*implicit cs => implicit timer =>*/
+      val spec = Resource.eval(MemoryCache.ofSingleImmutableMap[IO, Int, String](cacheKeyExpiration.some))
         .flatMap(cache => MemoryCache.liftToAuto(cache, checkExpirationsEvery).as(cache))
         .use(cache => 
         for {
@@ -65,8 +67,8 @@ class AutoMemoryCacheSpec extends Specification {
 
   "Auto MemoryCache.ofConcurrentHashMap" should {
 
-    "expire keys" in WithTestContext { ctx => implicit cs => implicit timer =>
-      val spec = Resource.liftF(MemoryCache.ofConcurrentHashMap[IO, Int, String](cacheKeyExpiration.some))
+    "expire keys" in WithTestContext { ctx => /*implicit cs => implicit timer =>*/
+      val spec = Resource.eval(MemoryCache.ofConcurrentHashMap[IO, Int, String](cacheKeyExpiration.some))
         .flatMap(cache => MemoryCache.liftToAuto(cache, checkExpirationsEvery).as(cache))
         .use(cache =>
           for {
@@ -91,8 +93,8 @@ class AutoMemoryCacheSpec extends Specification {
       spec.as(1).unsafeRunSync() must_== 1
     }
 
-    "resets expiration" in WithTestContext { ctx => implicit cs => implicit timer =>
-      val spec = Resource.liftF(MemoryCache.ofConcurrentHashMap[IO, Int, String](cacheKeyExpiration.some))
+    "resets expiration" in WithTestContext { ctx => /*implicit cs => implicit timer =>*/
+      val spec = Resource.eval(MemoryCache.ofConcurrentHashMap[IO, Int, String](cacheKeyExpiration.some))
         .flatMap(cache => MemoryCache.liftToAuto(cache, checkExpirationsEvery).as(cache))
         .use(cache => 
         for {
@@ -118,11 +120,11 @@ class AutoMemoryCacheSpec extends Specification {
 
 object WithTestContext {
 
-  def apply[A](f: TestContext => ContextShift[IO] => Timer[IO] => A): A = {
+  def apply[A](f: TestContext => /*Temporal[IO] =>*/ A): A = {
     val ctx = TestContext()
-    val cs: ContextShift[IO] = IO.contextShift(ctx)
-    val timer: Timer[IO] = ctx.timer[IO]
-    f(ctx)(cs)(timer)
+//    val cs: ContextShift[IO] = IO.contextShift(ctx)
+//    val timer: Temporal[IO] = ctx.timer[IO]
+    f(ctx)//(cs)(timer)
   }
 
 }

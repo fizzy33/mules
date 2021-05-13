@@ -2,7 +2,6 @@ package io.chrisdavenport.mules
 
 import cats._
 import cats.effect._
-import cats.effect.concurrent.Ref
 import cats.effect.syntax.concurrent._
 import cats.implicits._
 import scala.concurrent.duration._
@@ -12,6 +11,7 @@ import io.chrisdavenport.mapref.MapRef
 import io.chrisdavenport.mapref.implicits._
 
 import java.util.concurrent.ConcurrentHashMap
+import cats.effect.{ Ref, Temporal }
 
 final class MemoryCache[F[_], K, V] private[MemoryCache] (
   private val mapRef: MapRef[F, K, Option[MemoryCache.MemoryCacheItem[V]]],
@@ -67,8 +67,8 @@ final class MemoryCache[F[_], K, V] private[MemoryCache] (
    **/
   def insertWithTimeout(optionTimeout: Option[TimeSpec])(k: K, v: V): F[Unit] = {
     for {
-      now <- C.monotonic(NANOSECONDS)
-      timeout = optionTimeout.map(ts => TimeSpec.unsafeFromNanos(now + ts.nanos))
+      now <- C.monotonic
+      timeout = optionTimeout.map(ts => TimeSpec.unsafeFromNanos(now.toNanos + ts.nanos))
       _ <- mapRef.setKeyValue(k, MemoryCacheItem[V](v, timeout))
       _ <- onInsert(k, v)
     } yield ()
@@ -88,7 +88,7 @@ final class MemoryCache[F[_], K, V] private[MemoryCache] (
    * The function will eagerly delete the item from the cache if it is expired.
    **/
   def lookup(k: K): F[Option[V]] = {
-    C.monotonic(NANOSECONDS)
+    C.monotonic
       .flatMap{now =>
         mapRef(k).modify[F[Option[MemoryCacheItem[V]]]]{
           case s@Some(value) => 
@@ -117,7 +117,7 @@ final class MemoryCache[F[_], K, V] private[MemoryCache] (
    * The function will not delete the item from the cache.
    **/
   def lookupNoUpdate(k: K): F[Option[V]] = 
-    C.monotonic(NANOSECONDS)
+    C.monotonic
       .flatMap{now => 
         mapRef(k).get.map(
           _.flatMap(ci => 
@@ -217,8 +217,8 @@ final class MemoryCache[F[_], K, V] private[MemoryCache] (
    **/
   def purgeExpired: F[Unit] = {
     for {
-      now <- C.monotonic(NANOSECONDS)
-      out <- purgeExpiredEntries(now)
+      now <- C.monotonic
+      out <- purgeExpiredEntries(now.toNanos)
       _ <-  out.traverse_(onDelete)
     } yield ()
   }
@@ -296,16 +296,16 @@ object MemoryCache {
    *
    * @return an `Resource[F, Unit]` that will keep removing expired entries in the background.
    **/
-  def liftToAuto[F[_]: Concurrent: Timer, K, V](
+  def liftToAuto[F[_]: Async, K, V](
     memoryCache: MemoryCache[F, K, V],
     checkOnExpirationsEvery: TimeSpec
   ): Resource[F, Unit] = {
     def runExpiration(cache: MemoryCache[F, K, V]): F[Unit] = {
       val check = TimeSpec.toDuration(checkOnExpirationsEvery)
-      Timer[F].sleep(check) >> cache.purgeExpired >> runExpiration(cache)
+      Temporal[F].sleep(check) >> cache.purgeExpired >> runExpiration(cache)
     }
 
-    Resource.make(runExpiration(memoryCache).start)(_.cancel).void
+    Resource.make(Async[F].start(runExpiration(memoryCache)))(_.cancel).void
   }
 
   /**
@@ -396,7 +396,10 @@ object MemoryCache {
         }
       )
     }
-  }  
+  }
+
+
+  private def isExpired[A](checkAgainst: FiniteDuration, cacheItem: MemoryCacheItem[A]): Boolean = isExpired(checkAgainst.toNanos, cacheItem)
 
   private def isExpired[A](checkAgainst: Long, cacheItem: MemoryCacheItem[A]): Boolean = {
     cacheItem.itemExpiration match{ 

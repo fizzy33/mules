@@ -8,4 +8,5 @@ tags
 
 .bloop
 .metals
-project/metals.sbt
+project/metals.sbt.bsp
+.bsp

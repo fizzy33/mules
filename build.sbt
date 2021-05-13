@@ -45,7 +45,7 @@ lazy val reload = project.in(file("modules/reload"))
   )
 
 val catsV = "2.3.1"
-val catsEffectV = "2.1.4"
+val catsEffectV = "3.1.0"
 val catsCollectionV = "0.9.1"
 
 val specs2V = "4.10.6"
@@ -61,10 +61,12 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.typelevel"               %% "cats-core"                  % catsV,
     "org.typelevel"               %% "cats-effect"                % catsEffectV,
-    "io.chrisdavenport"           %% "mapref"                     % "0.1.1",
+    "io.chrisdavenport"           %% "mapref"                     % "0.2.0-M1",
 
+
+    "org.typelevel"               %% "cats-effect-kernel-testkit" % catsEffectV   % Test,
     "org.typelevel"               %% "cats-effect-laws"           % catsEffectV   % Test,
-    "com.codecommit"              %% "cats-effect-testing-specs2" % "0.4.2"       % Test,
+    "org.typelevel"               %% "cats-effect-testing-specs2" % "1.1.0"       % Test,
     "org.specs2"                  %% "specs2-core"                % specs2V       % Test,
     "org.specs2"                  %% "specs2-scalacheck"          % specs2V       % Test,
     "org.typelevel"               %% "discipline-specs2"          % disciplineSpecs2V % Test,
@@ -84,6 +86,7 @@ inThisBuild(List(
     )
   ),
   scalacOptions in (Compile, doc) ++= Seq(
+//      "-P:semanticdb:synthetics:on",
       "-groups",
       "-sourcepath", (baseDirectory in LocalRootProject).value.getAbsolutePath,
       "-doc-source-url", "https://github.com/ChristopherDavenport/mules/blob/v" + version.value + "€{FILE_PATH}.scala"

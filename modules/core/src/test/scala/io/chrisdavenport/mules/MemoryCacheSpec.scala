@@ -3,19 +3,19 @@ package io.chrisdavenport.mules
 import org.specs2.mutable.Specification
 import scala.concurrent.duration._
 import cats.effect._
-import cats.effect.concurrent._
 // import cats.effect.implicits._
 import cats.effect.IO
-import cats.effect.laws.util.TestContext
-import cats.effect.testing.specs2.CatsIO
+import cats.effect.kernel.testkit.TestContext
+import cats.effect.testing.specs2.CatsEffect
+import cats.effect.{ Ref, Temporal }
 
-class MemoryCacheSpec extends Specification with CatsIO {
+class MemoryCacheSpec extends Specification with CatsEffect {
 
 
   "MemoryCache.ofSingleImmutableMap" should {
     "get a value in a quicker period than the timeout" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofSingleImmutableMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -27,7 +27,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "remove a value after delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofSingleImmutableMap[IO, String, Int](None)(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -39,7 +39,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Remove a value in mass delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofSingleImmutableMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -52,7 +52,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Lookup after interval fails to get a value" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofSingleImmutableMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -64,7 +64,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Not Remove an item on lookup No Delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         checkWasTouched <- Ref[IO].of(false)
         iCache <- MemoryCache.ofSingleImmutableMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
@@ -81,7 +81,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
   "MemoryCache.ofShardedImmutableMap" should {
     "get a value in a quicker period than the timeout" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofShardedImmutableMap[IO, String, Int](10, Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -93,7 +93,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "remove a value after delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofShardedImmutableMap[IO, String, Int](10, Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -105,7 +105,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Remove a value in mass delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofShardedImmutableMap[IO, String, Int](10, Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -118,7 +118,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Lookup after interval fails to get a value" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofShardedImmutableMap[IO, String, Int](10, Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -130,7 +130,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Not Remove an item on lookup No Delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         checkWasTouched <- Ref[IO].of(false)
         iCache <- MemoryCache.ofShardedImmutableMap[IO, String, Int](10, Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
@@ -147,7 +147,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
   "MemoryCache.ofConcurrentHashMap" should {
     "get a value in a quicker period than the timeout" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofConcurrentHashMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -159,7 +159,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "remove a value after delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofConcurrentHashMap[IO, String, Int](None)(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -171,7 +171,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Remove a value in mass delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofConcurrentHashMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -184,7 +184,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Lookup after interval fails to get a value" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         cache <- MemoryCache.ofConcurrentHashMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
         _ <- cache.insert("Foo", 1)
@@ -196,7 +196,7 @@ class MemoryCacheSpec extends Specification with CatsIO {
 
     "Not Remove an item on lookup No Delete" in {
       val ctx = TestContext()
-      implicit val testTimer: Timer[IO] = ctx.timer[IO]
+      implicit val testTimer: Temporal[IO] = ctx.timer[IO]
       val setup = for {
         checkWasTouched <- Ref[IO].of(false)
         iCache <- MemoryCache.ofConcurrentHashMap[IO, String, Int](Some(TimeSpec.unsafeFromDuration(1.second)))(Sync[IO], testTimer.clock)
